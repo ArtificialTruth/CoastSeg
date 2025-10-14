@@ -1,0 +1,8 @@
+name: coastseg
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - geopandas
+  - gdal
+prefix: /home/ts/anaconda3/envs/coastseg

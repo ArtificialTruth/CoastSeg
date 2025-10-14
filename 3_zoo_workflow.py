@@ -1,33 +1,49 @@
 import os
+import sys
+
+# Ensure local source takes precedence over any installed coastseg package for local modifications
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_PATH = os.path.join(CURRENT_DIR, "src")
+if SRC_PATH not in sys.path:
+    sys.path.insert(0, SRC_PATH)
+
 from coastseg import coastseg_logs
 from coastseg import zoo_model
 from coastseg.tide_correction import compute_tidal_corrections
 from coastseg import file_utilities
+from coastseg import core_utilities
+
+base_dir = core_utilities.get_base_dir()
+print(f"The base directory is {base_dir}")
+# path to Coastseg/data
+data_folder = base_dir / "data"
+print(f"The data directory is {data_folder}")
+
 
 # The Zoo Model is a machine learning model that can be used to extract shorelines from satellite imagery.
 # This script will only run a single ROI at a time. If you want to run multiple ROIs, you will need to run this script multiple times.
 
 # Extract Shoreline Settings
 settings ={
-    'min_length_sl': 100,       # minimum length (m) of shoreline perimeter to be valid
-    'max_dist_ref':500,         # maximum distance (m) from reference shoreline to search for valid shorelines. This detrmines the width of the buffer around the reference shoreline  
+    'min_length_sl': 10,       # minimum length (m) of shoreline perimeter to be valid
+    'max_dist_ref': 2000,         # maximum distance (m) from reference shoreline to search for valid shorelines. This detrmines the width of the buffer around the reference shoreline  
     'cloud_thresh': 0.5,        # threshold on maximum cloud cover (0-1). If the cloud cover is above this threshold, no shorelines will be extracted from that image
-    'dist_clouds': 100,         # distance(m) around clouds where shoreline will not be mapped
+    'dist_clouds': 10,         # distance(m) around clouds where shoreline will not be mapped
     'min_beach_area': 50,      # minimum area (m^2) for an object to be labelled as a beach
-    'sand_color': 'default',    # 'default', 'latest', 'dark' (for grey/black sand beaches) or 'bright' (for white sand beaches)
-    "apply_cloud_mask": True,   # apply cloud mask to the imagery. If False, the cloud mask will not be applied.
+    'sand_color': 'dark',    # 'default', 'latest', 'dark' (for grey/black sand beaches) or 'bright' (for white sand beaches)
+    "apply_cloud_mask": False,   # apply cloud mask to the imagery. If False, the cloud mask will not be applied.
 }
 
 
 # The model can be run using the following settings:
 model_setting = {
             "sample_direc": None, # directory of jpgs  ex. C:/Users/username/CoastSeg/data/ID_lla12_datetime11-07-23__08_14_11/jpg_files/preprocessed/RGB/",
-            "use_GPU": "0",  # 0 or 1 0 means no GPU
+            "use_GPU": "1",  # 0 or 1 0 means no GPU
             "implementation": "BEST",  # BEST or ENSEMBLE 
             "model_type": "global_segformer_RGB_4class_14036903", # model name from the zoo
             "otsu": False, # Otsu Thresholding
             "tta": False,  # Test Time Augmentation
-            "apply_segmentation_filter": True, # apply segmentation filter to the model outputs to sort them into good or bad
+            "apply_segmentation_filter": False, # apply segmentation filter to the model outputs to sort them into good or bad
         }
 # Available models can run input "RGB" # or "MNDWI" or "NDWI"
 img_type = "RGB"  # make sure the model name is compatible with the image type
@@ -37,17 +53,18 @@ percent_no_data = 0.75
 # 1. Set the User configuration Settings
 # ---------------------------
 # a. ENTER THE NAME OF THE SESSION TO SAVE THE MODEL PREDICTIONS TO
-session_name = "sample_session_demo1"
+session_name = "qgreenland_2017"
 # b. ENTER THE DIRECTORY WHERE THE INPUT IMAGES ARE STORED
 # -  Example of the directory where the input images are stored ( this should be the /data folder in the CoastSeg directory)
-sample_directory = r"C:\development\doodleverse\coastseg\CoastSeg\data\ID_zyh1_datetime06-11-24__03_02_55\jpg_files\preprocessed\RGB"
+#sample_directory = r"coastseg\CoastSeg\data\ID_elh100_datetime10-08-25__10_52_30\jpg_files\preprocessed\RGB"
+img_dir = "ID_elh100_datetime10-08-25__04_49_29"
 
 # 2. Save the settings to the model instance 
 # -----------------
 # Create an instance of the zoo model to run the model predictions
 zoo_model_instance = zoo_model.Zoo_Model()
-# Set the model settings to read the input images from the sample directory
-model_setting["sample_direc"] = sample_directory
+# Set the model settings to read the input images from the sample directory 
+model_setting["sample_direc"] = os.path.join(data_folder, img_dir, "jpg_files", "preprocessed", "RGB")
 model_setting["img_type"] = img_type
 
 # save settings to the zoo model instance
@@ -57,8 +74,8 @@ zoo_model_instance.set_settings(**settings)
 
 
 # OPTIONAL: If you have a transects and shoreline file, you can extract shorelines from the zoo model outputs
-transects_path = "" # path to the transects geojson file (optional, default will be loaded if not provided)
-shoreline_path = "" # path to the shoreline geojson file (optional, default will be loaded if not provided)
+transects_path = os.path.join(base_dir,'examples', "qgreenland_2017", "transects.geojson") # path to the transects geojson file (optional, default will be loaded if not provided)
+shoreline_path = os.path.join(base_dir, 'examples', "qgreenland_2017", "shoreline.geojson") # path to the shoreline geojson file (optional, default will be loaded if not provided)
 shoreline_extraction_area_path= "" # path to the shoreline extraction area geojson file (optional)
 
 # 3. Run the model and extract shorelines
@@ -68,7 +85,8 @@ zoo_model_instance.run_model_and_extract_shorelines(
             session_name=session_name,
             shoreline_path=shoreline_path,
             transects_path=transects_path,
-            shoreline_extraction_area_path = shoreline_extraction_area_path
+            shoreline_extraction_area_path = shoreline_extraction_area_path,
+            compute_transects=False
         )
 
 # 4. OPTIONAL: Run Tide Correction

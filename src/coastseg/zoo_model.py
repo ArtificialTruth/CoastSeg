@@ -925,6 +925,7 @@ class Zoo_Model:
         transects_path: str = "",
         shoreline_extraction_area_path: str = "",
         coregistered: bool = False,
+        compute_transects: bool = True,
     ):
         """
         Runs the model and extracts shorelines using the segmented imagery.
@@ -977,6 +978,7 @@ class Zoo_Model:
             shoreline_path=shoreline_path,
             transects_path=transects_path,
             shoreline_extraction_area_path=shoreline_extraction_area_path,
+            compute_transects=compute_transects,
         )
         progress_bar.update(1)
         progress_bar.set_description_str(
@@ -992,6 +994,7 @@ class Zoo_Model:
         shoreline_path: str = "",
         transects_path: str = "",
         shoreline_extraction_area_path: str = "",
+        compute_transects: bool = True,
         **kwargs: dict,
     ) -> None:
         """
@@ -1044,9 +1047,15 @@ class Zoo_Model:
 
         # load transects and shorelines
         output_epsg = settings["output_epsg"]
-        transects_gdf = geodata_processing.create_geofeature_geodataframe(
-            transects_path, roi_gdf, output_epsg, "transect"
-        )
+
+        # Only load transects if requested; otherwise, use empty GeoDataFrame
+        if compute_transects:
+            transects_gdf = geodata_processing.create_geofeature_geodataframe(
+                transects_path, roi_gdf, output_epsg, "transect"
+            )
+        else:
+            transects_gdf = gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
+
         shoreline_gdf = geodata_processing.create_geofeature_geodataframe(
             shoreline_path, roi_gdf, output_epsg, "shoreline"
         )
@@ -1132,30 +1141,30 @@ class Zoo_Model:
 
         # common.save_extracted_shoreline_figures(extracted_shorelines, new_session_path)
         print(f"Saved extracted shorelines to {new_session_path}")
-
+        # Compute/save transect timeseries only if enabled and non-empty
         # transects must be in the same CRS as the extracted shorelines otherwise intersections will all be NAN
-        if not transects_gdf.empty:
+        if compute_transects and not transects_gdf.empty:
             transects_gdf = transects_gdf.to_crs("EPSG:4326")
 
-        # new method to compute intersections
-        # Currently the method requires both the transects and extracted shorelines to be in the same CRS 4326
-        extracted_shorelines_gdf_lines = extracted_shorelines.gdf.copy().to_crs(
-            "EPSG:4326"
-        )
+            # new method to compute intersections
+            # Currently the method requires both the transects and extracted shorelines to be in the same CRS 4326
+            extracted_shorelines_gdf_lines = extracted_shorelines.gdf.copy().to_crs(
+                "EPSG:4326"
+            )
 
-        # Compute the transect timeseries by intersecting each transect with each extracted shoreline
-        transect_timeseries_df = transect_timeseries(
-            extracted_shorelines_gdf_lines, transects_gdf
-        )
-        # save two version of the transect timeseries, the transect settings and the transects as a dictionary
-        save_transects(
-            new_session_path,
-            transect_timeseries_df,
-            settings,
-            ext="raw",
-            good_bad_csv=good_bad_csv,
-            good_bad_seg_csv=good_bad_seg_csv,
-        )
+            # Compute the transect timeseries by intersecting each transect with each extracted shoreline
+            transect_timeseries_df = transect_timeseries(
+                extracted_shorelines_gdf_lines, transects_gdf
+            )
+            # save two version of the transect timeseries, the transect settings and the transects as a dictionary
+            save_transects(
+                new_session_path,
+                transect_timeseries_df,
+                settings,
+                ext="raw",
+                good_bad_csv=good_bad_csv,
+                good_bad_seg_csv=good_bad_seg_csv,
+            )
 
     def postprocess_data(
         self, preprocessed_data: dict, session: sessions.Session, roi_directory: str

@@ -10,13 +10,14 @@ print(f"The base directory is {base_dir}")
 data_folder = base_dir / "data"
 print(f"The data directory is {data_folder}")
 
+
 # if you get an error here, enter your project id
 initialize_gee(auth_mode = "localhost",project='')
 # initialize the CoastSeg map
 coastsegmap=coastseg_map.CoastSeg_Map(create_map=False)
 
 # Construct the path to rois.geojson
-rois_path = os.path.join(os.path.abspath(base_dir), 'examples',"rois.geojson")
+rois_path = os.path.join(os.path.abspath(base_dir), 'examples',"qgreenland_2017","rois.geojson")
 print(f"Loading ROIs from {rois_path}")
 
 # sample ROI (Region of Interest) file
@@ -27,8 +28,8 @@ roi_ids =  list(roi.gdf.id)
 print(f"Downloading imagery for ROI with ID {roi_ids}")
 # customize the settings for the imagery download
 settings = {
-    'sat_list':['L9'],                    # list of satellites to download imagery from. Options: 'L5', 'L7', 'L8', 'L9','S2'
-    'dates':["2023-12-01", "2024-02-01"], # Start and end date to download imagery
+    'sat_list':['L8', "L9", "S2"],                    # list of satellites to download imagery from. Options: 'L5', 'L7', 'L8', 'L9','S2'
+    'dates':["2016-08-01", "2017-09-01"], # Start and end date to download imagery
     'landsat_collection':'C02',           # GEE collection to use. CoastSeg uses the Landsat Collection 2 (C02) by default
     "image_size_filter": True,            # filter images into bad folder if the images are less than 60% of the expected area. If False, no images will be filtered
     "apply_cloud_mask": True,             # apply cloud mask to the imagery. If False, the cloud mask will not be applied.
@@ -39,22 +40,23 @@ coastsegmap.download_imagery(rois=roi.gdf,selected_ids=roi_ids,settings=settings
 
 # name the session where you want to save the extracted shorelines
 # session_name = 'sample_session1'
-session_name = 'sample_session1'
+session_name = 'qgreenland_2017_zoo_39_tests_nuuk'
 coastsegmap.set_session_name(session_name)
+
 
 # Modify the settings for the shoreline extraction here
 # These settings will only extract shorelines with:
 # - a minimum beach area of 500 m^2
 # - a minimum length of 20 m
 # - a maximum distance from the reference shoreline of 300 m
-coastsegmap.set_settings(min_beach_area=100,min_length_sl=20,max_dist_ref=300)
+coastsegmap.set_settings(min_beach_area=100, min_length_sl=10, max_dist_ref=3000)
 
 # load a shoreline file from the examples folder
-shoreline_path = os.path.join(base_dir, 'examples', "shoreline.geojson")
+shoreline_path = os.path.join(base_dir, 'examples', "qgreenland_2017", "shoreline.geojson")
 shoreline = coastsegmap.load_feature_from_file('shoreline',shoreline_path)
 
 # load transects from the examples folder
-transect_path = os.path.join(base_dir,'examples', "transects.geojson")
+transect_path = os.path.join(base_dir,'examples', "qgreenland_2017", "transects.geojson")
 transects = coastsegmap.load_feature_from_file('transects', transect_path)
 
 # extract the shorelines for the selected ROI and save them to the /sessions/session_name folder

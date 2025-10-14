@@ -14,6 +14,7 @@ certifications.json
 /*.json
 /*.drawio
 /*.yml
+!environment.yml
 /*.txt
 
 # ignore dev files

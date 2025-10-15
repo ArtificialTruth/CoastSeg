@@ -26,7 +26,7 @@ print(f"The data directory is {data_folder}")
 # Extract Shoreline Settings
 settings ={
     'min_length_sl': 10,       # minimum length (m) of shoreline perimeter to be valid
-    'max_dist_ref': 2000,         # maximum distance (m) from reference shoreline to search for valid shorelines. This detrmines the width of the buffer around the reference shoreline  
+    'max_dist_ref': 500,         # maximum distance (m) from reference shoreline to search for valid shorelines. This detrmines the width of the buffer around the reference shoreline  
     'cloud_thresh': 0.5,        # threshold on maximum cloud cover (0-1). If the cloud cover is above this threshold, no shorelines will be extracted from that image
     'dist_clouds': 10,         # distance(m) around clouds where shoreline will not be mapped
     'min_beach_area': 50,      # minimum area (m^2) for an object to be labelled as a beach
